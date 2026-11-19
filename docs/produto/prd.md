@@ -2,7 +2,7 @@
 documento: PRD
 produto: Servio
 release: R1 (MVP — Gestão)
-versao: 1.0
+versao: 1.1
 status: Aprovado (2026-11-19)
 autor: Evandro Nascimento (PO/TL) com apoio de IA
 criado: 2026-11-19
@@ -118,6 +118,25 @@ Prioridade MoSCoW: **M** = obrigatório, **S** = deveria ter, **C** = se der tem
 | RN-09 | O preço na OS é copiado do catálogo no momento da inclusão. Mudar o catálogo não altera OS existentes. |
 | RN-10 | OS `Entregue` ou `Cancelada` não pode mais ser editada. |
 | RN-11 | Status do agendamento: `Agendado → Em atendimento (vira OS) → Concluído`, ou `Cancelado` / `Não compareceu`. |
+| RN-12 | Telefone: celular brasileiro com DDD (10 ou 11 dígitos), armazenado só com números. Telefone duplicado entre clientes é permitido, com aviso na tela. |
+| RN-13 | Moto: placa, marca e modelo obrigatórios; ano e km opcionais. Placa no formato antigo (`ABC1234`) ou Mercosul (`ABC1D23`), armazenada em maiúsculas e sem hífen. Ano entre 1950 e o ano atual + 1. Km maior ou igual a 0. |
+| RN-14 | Transferir moto para outro cliente não é permitido na R1. |
+| RN-15 | Busca de cliente: por trecho do nome (ignorando maiúsculas e acentos) ou por trecho do telefone (só números). |
+| RN-16 | Serviço: duração em minutos, maior que 0 e até 480; preço base maior ou igual a 0 (zero permitido para cortesia); nome único por tenant entre os serviços ativos. |
+| RN-17 | Marca do tenant: cor primária e secundária em hexadecimal; logo PNG ou SVG com até 500 KB. O armazenamento do logo é definido em ADR. |
+| RN-18 | Provisionamento: o primeiro tenant e o primeiro Gestor são criados por script de provisionamento. Não há tela de administração da plataforma na R1. |
+| RN-19 | Autenticação (valores de referência para a ADR): sessão expira em 8h; senha com no mínimo 8 caracteres; bloqueio de 15 minutos após 5 tentativas inválidas seguidas. |
+
+### Matriz de permissões (R1)
+
+| Recurso | Gestor | Atendente | Mecânico |
+|---|---|---|---|
+| Equipe (usuários) | Gerencia | — | — |
+| Catálogo de serviços | Gerencia | Consulta | Consulta |
+| Clientes e motos | Gerencia | Gerencia | Consulta |
+| Agenda | Gerencia | Gerencia | Consulta a do dia |
+| Ordens de serviço | Gerencia todas | Gerencia todas | Consulta e altera status só das atribuídas a ele (RN-08) |
+| Painel do dia | Vê | Vê | — |
 
 ## 8. Requisitos não funcionais
 
@@ -160,6 +179,7 @@ Decisões padrão adotadas na aprovação, revisáveis em versões futuras:
 | D3 | Fotos da OS (E4.6) | Opcionais |
 | D4 | Configuração da marca | Feita no cadastro do tenant (sem tela de autoatendimento na R1) |
 | D5 | Metas da seção 3 | Mantidas |
+| D6 | Dúvidas Q1–Q9 levantadas pelo agente na criação do backlog | Respondidas em RN-12 a RN-19 e na matriz de permissões (v1.1). A estória de login (E1.2) aguarda a ADR de autenticação |
 
 ## 12. Critérios de pronto da release
 
@@ -172,11 +192,11 @@ Decisões padrão adotadas na aprovação, revisáveis em versões futuras:
 
 | Épico | Jira | Documentos relacionados |
 |---|---|---|
-| E1 | SRV-? (criado após aprovação) | ADR multi-tenant, ADR autenticação |
-| E2 | SRV-? | — |
-| E3 | SRV-? | — |
-| E4 | SRV-? | — |
-| E5 | SRV-? | — |
+| E1 | (pendente) | ADR multi-tenant, ADR autenticação |
+| E2 | SRV-1 | — |
+| E3 | SRV-2 | — |
+| E4 | SRV-3 | — |
+| E5 | SRV-4 | — |
 
 ## Histórico
 
@@ -184,3 +204,4 @@ Decisões padrão adotadas na aprovação, revisáveis em versões futuras:
 |---|---|---|---|
 | 0.1 | 2026-11-19 | Evandro + IA | Rascunho inicial a partir da visão do produto e do projeto MotoWorkshop |
 | 1.0 | 2026-11-19 | Evandro | Aprovado. Perguntas em aberto resolvidas com as decisões D1–D5 |
+| 1.1 | 2026-11-19 | Evandro | RN-12 a RN-19 e matriz de permissões, a partir das dúvidas levantadas na criação do backlog (D6). Chaves dos épicos E2–E5 |
