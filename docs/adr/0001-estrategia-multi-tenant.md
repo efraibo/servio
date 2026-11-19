@@ -3,7 +3,7 @@
 - **Status:** Aceita
 - **Data:** 2026-11-19
 - **Decisor:** Evandro Nascimento
-- **Relacionado:** RN-01, RN-03, RN-18, RNF-01, RNF-05, RNF-09 do PRD; estórias SRV-6 e SRV-7; ADR-0002 (autenticação, a ser escrita)
+- **Relacionado:** RN-01, RN-03, RN-18, RNF-01, RNF-05, RNF-09 do PRD; estórias SRV-6 e SRV-7; ADR-0002 (autenticação e identificação do tenant; condições 11 e 12 ajustadas por ela)
 
 ## Contexto
 
@@ -76,7 +76,7 @@ A decisão vale com as 13 condições abaixo.
 
 1. **Papéis de banco separados.** A aplicação conecta com um papel sem `BYPASSRLS`, que não é dono das tabelas e não é superuser. As migrações rodam com outro papel, dono do schema.
 2. **RLS em toda tabela de negócio.** `ENABLE ROW LEVEL SECURITY` e `FORCE ROW LEVEL SECURITY`, com política baseada em `current_setting('app.tenant_id')`.
-3. **Contexto por transação.** O `tenant_id` é definido com `SET LOCAL` (ou `set_config(..., true)`), em um único ponto da aplicação, para não vazar entre requisições no pool de conexões.
+3. **Contexto por transação.** O `tenant_id` é definido com `SET LOCAL` (ou `set_config(..., true)`), em um único ponto da aplicação, para não vazar entre requisições no pool de conexões. Esse ponto atua no início de **toda** transação, inclusive as abertas com `REQUIRES_NEW` (o `SET LOCAL` só vale na transação em que foi executado), e não só no início da requisição (ver ADR-0002, regra 15).
 4. **Teste de cobertura de RLS.** Um teste automático falha se existir tabela com `tenant_id` sem RLS ativo e forçado, ou sem política.
 5. **Teste de isolamento por recurso.** Dados os tenants A e B, A não lê nem escreve dados de B (exigido pela DoD sempre que a estória acessa dados).
 6. **Unicidade composta com `tenant_id`.** Restrições e índices únicos incluem o `tenant_id` (ex.: placa única por tenant, RN-03).
@@ -84,9 +84,9 @@ A decisão vale com as 13 condições abaixo.
 8. **Defesa em camadas.** Além do RLS, a aplicação filtra por tenant usando `@TenantId` e `CurrentTenantIdentifierResolver` do Hibernate 6. O RLS é a garantia; o filtro da aplicação é a segunda barreira.
 9. **Testes com PostgreSQL real.** Os testes de isolamento e de cobertura de RLS rodam com PostgreSQL real via Testcontainers, nunca H2.
 10. **Falha fechada.** As políticas têm `USING` e `WITH CHECK`. Sem `app.tenant_id` definido, nenhuma linha é lida nem gravada.
-11. **Origem do tenant.** O tenant vem do token autenticado (ver ADR-0002), nunca de parâmetro, corpo ou URL enviados pelo cliente.
-12. **Tabelas de plataforma.** Tabelas sem tenant são exceções explícitas ao RLS e ficam listadas nesta ADR. Lista inicial: `tenants` e as credenciais de usuário (nomes finais conforme o modelo de dados; qualquer inclusão na lista exige atualizar esta ADR). O teste de cobertura de RLS as ignora por **lista nominal**, nunca por padrão de nome. O acesso a elas para autenticar, antes de o tenant ser conhecido, será decidido na ADR-0002 (ex.: função `SECURITY DEFINER` ou tenant pelo subdomínio).
-13. **Acesso sempre transacional.** `spring.jpa.open-in-view=false`; todo acesso a dados ocorre em métodos `@Transactional` (`readOnly = true` quando for leitura); e uma consulta que rode sem `app.tenant_id` definido gera log de alerta.
+11. **Origem do tenant.** Em requisições autenticadas, o tenant vem da sessão autenticada (ver ADR-0002), nunca de parâmetro, corpo ou URL enviados pelo cliente. Única ressalva: no login, o slug da oficina na URL é só dica de entrada para localizar a credencial e é validado pela senha; depois do login vale apenas o tenant da sessão (ADR-0002).
+12. **Tabelas de plataforma.** Tabelas sem tenant são exceções explícitas ao RLS e ficam listadas nesta ADR. Lista (alterada pela ADR-0002): `tenants` (só dados públicos: nome, slug, cores, logo e ativo), `spring_session` e `spring_session_attributes` (acessadas só pelo Spring Session, nunca por código da aplicação). As credenciais de usuário **não** são exceção: ficam sob RLS, e o login define o tenant a partir do slug no mesmo ponto único da condição 3. Qualquer inclusão na lista exige atualizar esta ADR. O teste de cobertura de RLS ignora as tabelas da lista por **lista nominal**, nunca por padrão de nome.
+13. **Acesso sempre transacional.** `spring.jpa.open-in-view=false`; todo acesso a dados ocorre em métodos `@Transactional` (`readOnly = true` quando for leitura); e uma consulta que rode sem `app.tenant_id` definido gera log de alerta. O alerta ignora as tabelas de plataforma da lista nominal da condição 12 (as de sessão são lidas antes de o tenant ser conhecido).
 
 ## Consequências
 
@@ -99,15 +99,15 @@ A decisão vale com as 13 condições abaixo.
   - Backup, restauração e exclusão de um tenant inteiro ficam por script (por linha, não por banco). A anonimização de cliente sob pedido (RNF-05) continua simples.
   - Um tenant muito grande pode afetar os demais. Se surgir tenant grande ou exigência contratual de isolamento físico, migrar esse tenant para schema ou banco próprio.
   - O contexto do tenant por transação é um ponto crítico: um defeito nele afeta todos os recursos. Por isso fica concentrado em um único lugar e coberto por teste.
-  - Depende da ADR-0002: o tenant vem do token e a identificação dele precisa estar decidida lá (condição 11).
-  - Tabelas de plataforma (`tenants`, credenciais de usuário) ficam fora do RLS (condição 12). O acesso a elas para autenticar, antes de o tenant ser conhecido, fica em aberto até a ADR-0002 (ex.: função `SECURITY DEFINER` ou tenant pelo subdomínio). Enquanto isso, essas tabelas são o ponto de maior atenção em revisão, porque o banco não as protege por tenant.
+  - Depende da ADR-0002: o tenant vem da sessão autenticada e a identificação dele no login está decidida lá (condição 11).
+  - Tabelas de plataforma (`tenants`, `spring_session`, `spring_session_attributes`) ficam fora do RLS (condição 12). As credenciais ficam sob RLS, e o login lê o tenant pelo slug (ADR-0002). Essas três tabelas são o ponto de maior atenção em revisão, porque o banco não as protege por tenant; as de sessão guardam IDs de sessão, e o risco de leitura por SQL injection é mitigado por acesso só com JPA ou consultas parametrizadas (ADR-0002).
   - Com `open-in-view=false`, nenhum acesso preguiçoso (lazy) funciona fora de transação; o código precisa carregar o necessário dentro do método `@Transactional`.
 - **O que precisa ser feito por causa desta decisão** (estórias técnicas propostas; não criadas no Jira):
   1. Criar os papéis de banco (aplicação sem `BYPASSRLS` e dono das migrações) e a conexão da aplicação com o papel restrito.
   2. Definir o padrão de migração: coluna `tenant_id`, `ENABLE`/`FORCE RLS` e política `USING`/`WITH CHECK` por tabela, como convenção ou template reutilizável.
   3. Implementar o ponto único que define `app.tenant_id` por transação (`SET LOCAL`), com falha fechada quando ausente.
   4. Configurar `@TenantId` e `CurrentTenantIdentifierResolver` do Hibernate 6, lendo o tenant do contexto de segurança.
-  5. Obter o tenant do token autenticado e proibir tenant vindo de parâmetro, corpo ou URL (depende da ADR-0002).
+  5. Obter o tenant da sessão autenticada e proibir tenant vindo de parâmetro, corpo ou URL (ADR-0002).
   6. Infraestrutura de testes com Testcontainers e PostgreSQL real, usada por todos os testes de isolamento.
   7. Teste automático de cobertura de RLS: toda tabela com `tenant_id` tem RLS ativo, forçado e com política.
   8. Teste de isolamento reutilizável (tenants A e B) para aplicar nos recursos de E1 e E2.
@@ -115,7 +115,7 @@ A decisão vale com as 13 condições abaixo.
   10. Script de provisionamento do tenant e do primeiro Gestor compatível com RLS (RN-18; SRV-6).
   11. Script de backup, restauração e exclusão por tenant (dívida aceita).
   12. Atualizar o HLD e o runbook com os papéis de banco e a regra do contexto de tenant.
-  13. Definir a lista nominal de tabelas de plataforma e o acesso a elas na autenticação (depende da ADR-0002).
+  13. Definir a lista nominal de tabelas de plataforma (`tenants`, `spring_session`, `spring_session_attributes`) e usá-la no teste de cobertura de RLS e no alerta da condição 13.
   14. Configurar `spring.jpa.open-in-view=false` e o log de alerta para consulta sem `app.tenant_id`, com o teste automático correspondente.
 
 ## Como verificar
@@ -126,5 +126,5 @@ A decisão vale com as 13 condições abaixo.
 - **Falha fechada (automático):** sem `app.tenant_id` definido, `SELECT` retorna zero linhas e `INSERT` é rejeitado.
 - **Sem vazamento no pool (automático):** duas requisições seguidas de tenants diferentes na mesma conexão não compartilham o contexto.
 - **Papel da aplicação (automático):** o papel usado em runtime não é superuser, não tem `BYPASSRLS` e não é dono das tabelas.
-- **Origem do tenant (automático):** requisição com `tenant` ou `tenant_id` em parâmetro, corpo ou URL diferente do token é ignorada ou rejeitada, e vale o tenant do token.
+- **Origem do tenant (automático):** requisição autenticada com `tenant` ou `tenant_id` em parâmetro, corpo ou URL diferente da sessão é ignorada ou rejeitada, e vale o tenant da sessão. A regra do slug no login e o 403 por slug divergente são verificados conforme a ADR-0002.
 - **Revisão:** o agente revisor e a revisão humana conferem este checklist em toda estória que cria tabela ou acessa dados.
