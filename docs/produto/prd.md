@@ -2,16 +2,15 @@
 documento: PRD
 produto: Servio
 release: R1 (MVP — Gestão)
-versao: 0.1
-status: Rascunho — aguardando revisão do PO
+versao: 1.0
+status: Aprovado (2026-11-19)
 autor: Evandro Nascimento (PO/TL) com apoio de IA
 criado: 2026-11-19
 ---
 
 # PRD — Servio R1: Gestão de atendimentos para oficinas
 
-> **Status: rascunho.** Nenhuma estória vai para o Jira antes deste documento ser aprovado (gate humano 1).
-> Itens marcados com **[validar]** são propostas que precisam da sua decisão.
+> **Status: aprovado em 19/11/2026 pelo PO.** Mudanças a partir daqui entram como nova versão no histórico.
 
 ## 1. Contexto
 
@@ -30,7 +29,7 @@ Oficinas pequenas e médias controlam agenda e serviços em caderno, WhatsApp e 
 
 ## 3. Objetivos da R1
 
-| # | Objetivo | Como medir (no próprio sistema) | Meta R1 [validar] |
+| # | Objetivo | Como medir (no próprio sistema) | Meta R1 |
 |---|---|---|---|
 | O1 | Dar visibilidade do que está na oficina agora | % de OS abertas com status atualizado nas últimas 24h | ≥ 90% |
 | O2 | Organizar a agenda | Nº de agendamentos com conflito de capacidade | 0 (o sistema impede) |
@@ -104,7 +103,7 @@ Prioridade MoSCoW: **M** = obrigatório, **S** = deveria ter, **C** = se der tem
 - Estoque de peças, financeiro, pagamentos, nota fiscal
 - App nas lojas (iOS/Android), multi-idioma, configuração low-code
 
-## 7. Regras de negócio [validar todas]
+## 7. Regras de negócio
 
 | ID | Regra |
 |---|---|
@@ -130,7 +129,7 @@ Prioridade MoSCoW: **M** = obrigatório, **S** = deveria ter, **C** = se der tem
 | RNF-04 | Segurança | OWASP Top 10 como checklist de revisão; senhas com hash forte; sessão com expiração |
 | RNF-05 | LGPD | Coleta mínima; exclusão ou anonimização do cliente sob pedido; dados fictícios em dev e testes |
 | RNF-06 | Auditoria | Mudança de status registra usuário e data |
-| RNF-07 | Desempenho | Telas principais respondem em menos de 2s com até 5.000 OS por tenant [validar] |
+| RNF-07 | Desempenho | Telas principais respondem em menos de 2s com até 5.000 OS por tenant |
 | RNF-08 | Qualidade | Testes automatizados nos critérios de aceite; CI verde obrigatório para merge |
 | RNF-09 | Observabilidade | Logs estruturados com `tenantId` e health check |
 | RNF-10 | Acessibilidade | Contraste e navegação por teclado no nível básico (WCAG AA como referência) |
@@ -150,13 +149,17 @@ Prioridade MoSCoW: **M** = obrigatório, **S** = deveria ter, **C** = se der tem
 | Agente gerar código fora do padrão | Médio | Critérios de aceite verificáveis, hooks de teste, revisão em camadas |
 | Limite da cloud gratuita | Baixo | Docker Compose enxuto; plano B documentado em ADR |
 
-## 11. Perguntas em aberto (para a sua revisão)
+## 11. Decisões tomadas na aprovação
 
-1. A agenda controla capacidade só por horário, ou também por mecânico e box?
-2. O mecânico precisa registrar tempo gasto na OS na R1, ou fica para depois?
-3. As fotos da OS (E4.6) são obrigatórias na entrada da moto ou opcionais?
-4. Na R1, o gestor configura a marca (logo e cores) sozinho na tela, ou isso é feito por nós no cadastro do tenant?
-5. As metas da seção 3 fazem sentido, ou você quer outras?
+Decisões padrão adotadas na aprovação, revisáveis em versões futuras:
+
+| # | Pergunta | Decisão R1 |
+|---|---|---|
+| D1 | Capacidade da agenda | Só por faixa de horário. Por mecânico ou box fica para R3+ |
+| D2 | Tempo gasto pelo mecânico | Fora da R1 |
+| D3 | Fotos da OS (E4.6) | Opcionais |
+| D4 | Configuração da marca | Feita no cadastro do tenant (sem tela de autoatendimento na R1) |
+| D5 | Metas da seção 3 | Mantidas |
 
 ## 12. Critérios de pronto da release
 
@@ -180,3 +183,4 @@ Prioridade MoSCoW: **M** = obrigatório, **S** = deveria ter, **C** = se der tem
 | Versão | Data | Autor | Mudança |
 |---|---|---|---|
 | 0.1 | 2026-11-19 | Evandro + IA | Rascunho inicial a partir da visão do produto e do projeto MotoWorkshop |
+| 1.0 | 2026-11-19 | Evandro | Aprovado. Perguntas em aberto resolvidas com as decisões D1–D5 |
