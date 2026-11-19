@@ -192,7 +192,7 @@ Decisões padrão adotadas na aprovação, revisáveis em versões futuras:
 
 | Épico | Jira | Documentos relacionados |
 |---|---|---|
-| E1 | (pendente) | ADR multi-tenant, ADR autenticação |
+| E1 | SRV-5 | ADR multi-tenant, ADR autenticação |
 | E2 | SRV-1 | — |
 | E3 | SRV-2 | — |
 | E4 | SRV-3 | — |
