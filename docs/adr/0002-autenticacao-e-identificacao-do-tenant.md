@@ -3,7 +3,7 @@
 - **Status:** Aceita
 - **Data:** 2026-11-19
 - **Decisor:** Evandro Nascimento
-- **Relacionado:** RN-01, RN-18, RN-19, RNF-01, RNF-04 do PRD; matriz de permissões do PRD; features E1.2 e E1.4; estórias SRV-6 e SRV-7; ADR-0001 (condições 11, 12 e 13, ajustadas por esta ADR)
+- **Relacionado:** RN-01, RN-18, RN-19, RN-20, RN-21, RNF-01, RNF-04 do PRD; matriz de permissões do PRD; features E1.2, E1.4 e E1.6; estórias SRV-6 e SRV-7; ADR-0001 (condições 11, 12 e 13, ajustadas por esta ADR)
 
 ## Contexto
 
@@ -108,6 +108,7 @@ Adotar **Spring Security sem processo extra (A)**, com **sessão no servidor via
 15. **Política de senha e bloqueio (RN-19).** Senha com no mínimo 8 caracteres. Após 5 tentativas inválidas seguidas, a credencial é bloqueada por 15 minutos. O contador é por credencial, zera no sucesso e é gravado em transação própria (`REQUIRES_NEW`), para sobreviver à falha do login. O `SET LOCAL app.tenant_id` só vale na transação em que foi executado, então essa transação própria começa sem `app.tenant_id`; com o RLS em falha fechada, o `UPDATE` do contador afetaria zero linhas, sem erro. Por isso o ponto único que define `app.tenant_id` (condição 3 da ADR-0001) atua no início de **toda** transação, inclusive `REQUIRES_NEW`, e não só no início da requisição. O contador é gravado e lido sob RLS, e a gravação que afeta zero linhas é tratada como erro, nunca como sucesso silencioso.
 16. **Autorização por perfil.** O perfil (Gestor, Atendente, Mecânico) fica no principal e vira autoridade do Spring Security. A matriz de permissões é aplicada por método (`@PreAuthorize`). A RN-08 (mecânico só altera as OS atribuídas) é aplicada no serviço.
 17. **SQL injection.** Acesso a dados só com JPA ou consultas parametrizadas, verificado por revisão e por análise estática no CI. A ferramenta é definida na estória de CI.
+18. **Logout (E1.6).** O logout invalida a sessão no servidor (remoção pelo Spring Session, nunca por código da aplicação) e apaga o cookie de sessão na resposta. A requisição seguinte com o cookie antigo recebe 401. O logout é requisição de escrita e exige o token CSRF (regra 11). Encerra só a sessão atual; a remoção de todas as sessões do usuário continua restrita à desativação e à mudança de perfil (regra 14).
 
 ## Consequências
 
@@ -148,7 +149,8 @@ Testes automáticos em PostgreSQL real (Testcontainers), salvo indicação:
 - **Cookie:** o cookie de sessão tem `Secure`, `HttpOnly` e `SameSite=Lax`.
 - **CSRF:** requisição de escrita sem token CSRF dá 403.
 - **Slug divergente:** com sessão do tenant A, requisição com slug do tenant B dá 403 na API; o front redireciona para o login do slug B (teste de front).
-- **Erro genérico:** slug inexistente, oficina inativa, e-mail inexistente, senha errada e conta bloqueada retornam o mesmo status e o mesmo corpo.
+- **Erro genérico:** slug inexistente, oficina inativa, e-mail inexistente, senha errada e conta bloqueada retornam o mesmo status e o mesmo corpo, e o corpo é a mensagem exata da RN-20 ("E-mail ou senha inválidos. Após 5 tentativas, o acesso fica bloqueado por 15 minutos.") em todos os casos; o teste compara o texto literal.
+- **Logout (E1.6):** após o logout, a linha da sessão não existe mais no armazenamento de sessões (consulta feita pelo teste, em PostgreSQL real), a resposta apaga o cookie de sessão, e a requisição seguinte com o cookie antigo recebe 401 sem ler nem gravar dados; o logout sem token CSRF recebe 403 e a sessão continua ativa; o logout não remove as sessões de outros dispositivos do mesmo usuário.
 - **Lockout:** 5 tentativas inválidas seguidas bloqueiam por 15 minutos; sucesso antes do limite zera o contador; o contador persiste mesmo com a falha do login.
 - **Contador sob RLS e bloqueio na 5ª tentativa:** com o papel restrito da aplicação (sem `BYPASSRLS`, `FORCE RLS` ativo) e dois tenants com a mesma credencial de e-mail, 5 logins inválidos seguidos no tenant A: (a) após cada tentativa, o contador lido sob o tenant A vale 1, 2, 3, 4 e 5, ou seja, a gravação em `REQUIRES_NEW` afetou exatamente 1 linha (prova de que o `app.tenant_id` foi definido nessa transação); (b) as tentativas 1 a 4 retornam o erro genérico e a 5ª também, mas a 6ª, mesmo com a senha correta, é recusada pelo bloqueio, e a 5ª já deixa a credencial bloqueada; (c) o contador do tenant B permanece 0 e não é lido nem alterado; (d) lido sem `app.tenant_id`, o contador não retorna linha.
 - **Tenant em toda transação:** teste de integração abre uma transação `REQUIRES_NEW` dentro de outra e confirma que `current_setting('app.tenant_id')` está definido com o tenant correto em ambas; uma gravação que afeta zero linhas por falta de `app.tenant_id` faz o teste falhar com erro explícito.
