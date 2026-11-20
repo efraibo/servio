@@ -49,6 +49,6 @@ Uma estória está pronta para desenvolvimento quando:
 - [ ] Build e testes verdes no CI
 - [ ] Isolamento multi-tenant testado quando a estória acessa dados
 - [ ] Sem dados reais ou segredos no código, nos testes ou nos logs
-- [ ] PR com ID da estória (`SRV-xx`) no título e nos commits
+- [ ] PR com ID da estória (`SRV-xx`) no título. Commits `feat`, `fix`, `test` e `refactor` também levam o ID; `docs`, `chore`, `ci` e `build` são isentos (ADR-0003)
 - [ ] Revisão do agente revisor + revisão humana em regra de negócio
 - [ ] Docs atualizados quando a estória muda regra, API ou decisão
