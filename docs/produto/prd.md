@@ -2,7 +2,7 @@
 documento: PRD
 produto: Servio
 release: R1 (MVP — Gestão)
-versao: 1.1
+versao: 1.2
 status: Aprovado (2026-11-19)
 autor: Evandro Nascimento (PO/TL) com apoio de IA
 criado: 2026-11-19
@@ -59,6 +59,7 @@ Prioridade MoSCoW: **M** = obrigatório, **S** = deveria ter, **C** = se der tem
 | E1.3 | Perfis: Gestor, Atendente, Mecânico | M |
 | E1.4 | Gestor convida e desativa usuários da equipe | S |
 | E1.5 | Recuperação de senha | S |
+| E1.6 | Sair do sistema (logout), encerrando a sessão no servidor | M |
 
 ### Épico E2 — Cadastros
 | ID | Feature | Prioridade |
@@ -126,6 +127,8 @@ Prioridade MoSCoW: **M** = obrigatório, **S** = deveria ter, **C** = se der tem
 | RN-17 | Marca do tenant: cor primária e secundária em hexadecimal; logo PNG ou SVG com até 500 KB. O armazenamento do logo é definido em ADR. |
 | RN-18 | Provisionamento: o primeiro tenant e o primeiro Gestor são criados por script de provisionamento. Não há tela de administração da plataforma na R1. |
 | RN-19 | Autenticação (valores de referência para a ADR): sessão expira em 8h; senha com no mínimo 8 caracteres; bloqueio de 15 minutos após 5 tentativas inválidas seguidas. |
+| RN-20 | Falha de login mostra sempre a mesma mensagem: "E-mail ou senha inválidos. Após 5 tentativas, o acesso fica bloqueado por 15 minutos." A mensagem não muda quando a conta está bloqueada, para não revelar o estado da conta. |
+| RN-21 | O slug da oficina é público (aparece no link compartilhado com a equipe). Slug inexistente mostra a tela de login neutra, sem nome nem cores, e o envio retorna o mesmo erro genérico. |
 
 ### Matriz de permissões (R1)
 
@@ -180,6 +183,7 @@ Decisões padrão adotadas na aprovação, revisáveis em versões futuras:
 | D4 | Configuração da marca | Feita no cadastro do tenant (sem tela de autoatendimento na R1) |
 | D5 | Metas da seção 3 | Mantidas |
 | D6 | Dúvidas Q1–Q9 levantadas pelo agente na criação do backlog | Respondidas em RN-12 a RN-19 e na matriz de permissões (v1.1). A estória de login (E1.2) aguarda a ADR de autenticação |
+| D7 | Dúvidas levantadas ao quebrar o login (E1.2) em estórias | Logout vira E1.6 (M); RN-20; RN-21; logo na tela de login aguarda a ADR de armazenamento (RN-17) |
 
 ## 12. Critérios de pronto da release
 
@@ -205,3 +209,4 @@ Decisões padrão adotadas na aprovação, revisáveis em versões futuras:
 | 0.1 | 2026-11-19 | Evandro + IA | Rascunho inicial a partir da visão do produto e do projeto MotoWorkshop |
 | 1.0 | 2026-11-19 | Evandro | Aprovado. Perguntas em aberto resolvidas com as decisões D1–D5 |
 | 1.1 | 2026-11-19 | Evandro | RN-12 a RN-19 e matriz de permissões, a partir das dúvidas levantadas na criação do backlog (D6). Chaves dos épicos E2–E5 |
+| 1.2 | 2026-11-19 | Evandro | E1.6, RN-20 e RN-21 (D7) |
