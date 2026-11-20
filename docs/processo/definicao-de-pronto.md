@@ -30,6 +30,28 @@ Notas técnicas (opcional, só o que for decisão já tomada)
 - <ADR relacionado, endpoint esperado, tela>
 ```
 
+## Formato da estória técnica
+
+Estória técnica é a que entrega fundação ou infraestrutura sem comportamento de negócio para uma persona do PRD (épico E0, label `fundacao`). Usa o mesmo molde, com estas trocas:
+
+```
+Título: <verbo no infinitivo + resultado> (ex.: "Configurar o script de papéis do banco")
+
+Como Desenvolvedor
+Quero <ação>
+Para <benefício>
+
+Contexto
+- Épico: E0 · ADR: <ex.: ADR-0003, item 5>
+
+Critérios de aceite (lista verificável; Gherkin é opcional)
+- <critério que um teste, comando ou checagem automática confirma>
+- ...
+
+Fora do escopo
+- <o que esta estória NÃO faz>
+```
+
 ## Definition of Ready (DoR)
 
 Uma estória está pronta para desenvolvimento quando:
@@ -42,6 +64,13 @@ Uma estória está pronta para desenvolvimento quando:
 - [ ] Tem "fora do escopo" explícito
 - [ ] Cabe em até 3h de trabalho (se não couber, quebrar)
 - [ ] Não depende de decisão em aberto (se depender, criar antes a ADR)
+
+**Estória técnica** (épico E0): as regras de tamanho, "fora do escopo" e decisão em aberto continuam iguais. Mudam estes itens:
+
+- [ ] Está ligada ao épico E0 e a uma ADR (em vez de feature do PRD)
+- [ ] Persona é "Desenvolvedor"
+- [ ] Tem de 2 a 6 critérios de aceite em lista, todos verificáveis por teste, comando ou checagem automática (Gherkin é opcional)
+- [ ] Não se aplicam "cenário de erro ou de regra de negócio" nem "RN do PRD", salvo quando a estória toca uma regra do PRD (aí cita a RN)
 
 ## Definition of Done (DoD)
 
