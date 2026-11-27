@@ -152,7 +152,7 @@ class TenantNaTransacaoTest extends ComPostgres {
 
         assertThat(TransactionSynchronizationManager.isActualTransactionActive()).isFalse();
         assertThat(TransactionSynchronizationManager.getResourceMap()).isEmpty();
-        assertThat(((HikariDataSource) jdbc.getDataSource()).getHikariPoolMXBean().getActiveConnections())
+        assertThat(jdbc.getDataSource().unwrap(HikariDataSource.class).getHikariPoolMXBean().getActiveConnections())
                 .isZero();
         TenantContext.executarComo(B, () -> transacao().execute(s -> {
             assertThat(s.isNewTransaction()).isTrue();
