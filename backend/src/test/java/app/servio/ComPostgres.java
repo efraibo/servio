@@ -13,8 +13,8 @@ import org.testcontainers.utility.MountableFile;
  */
 public abstract class ComPostgres {
 
-    private static final String SENHA_OWNER = "ficticia-owner";
-    private static final String SENHA_APP = "ficticia-app";
+    static final String SENHA_OWNER = "ficticia-owner";
+    static final String SENHA_APP = "ficticia-app";
 
     static final PostgreSQLContainer POSTGRES = new PostgreSQLContainer("postgres:18")
             .withDatabaseName("servio")
