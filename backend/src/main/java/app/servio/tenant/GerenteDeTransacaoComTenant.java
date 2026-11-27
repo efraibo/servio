@@ -1,37 +1,55 @@
 // 🔵
 package app.servio.tenant;
 
-import java.sql.Connection;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.EntityManagerFactory;
+import jakarta.persistence.PersistenceException;
 import java.sql.SQLException;
-import javax.sql.DataSource;
-import org.springframework.jdbc.support.JdbcTransactionManager;
+import org.hibernate.Session;
+import org.springframework.orm.jpa.JpaTransactionManager;
+import org.springframework.orm.jpa.vendor.HibernateJpaDialect;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.TransactionDefinition;
+import org.springframework.transaction.TransactionException;
 
 /**
  * Único ponto que define {@code app.tenant_id}. Roda ao abrir toda transação física, inclusive
  * {@code REQUIRES_NEW}; o valor é local à transação. Sem tenant, nada é definido e o RLS fecha.
+ * JPA e {@code JdbcTemplate} usam a mesma conexão desta transação.
  *
  * <p>Fica dentro da abertura da transação para que uma falha aqui devolva a conexão. Um gerente de
- * transação criado à parte não passa por aqui. Com JPA (SRV-43), o gancho precisa ser revisto.
+ * transação criado à parte não passa por aqui.
  */
 @Component("transactionManager")
-class GerenteDeTransacaoComTenant extends JdbcTransactionManager {
+class GerenteDeTransacaoComTenant extends JpaTransactionManager {
 
-    GerenteDeTransacaoComTenant(DataSource dataSource) {
-        super(dataSource);
+    GerenteDeTransacaoComTenant(EntityManagerFactory fabrica) {
+        super(fabrica);
     }
 
     @Override
-    protected void prepareTransactionalConnection(Connection conexao, TransactionDefinition definicao)
-            throws SQLException {
-        super.prepareTransactionalConnection(conexao, definicao);
-        var tenant = TenantContext.atual();
-        if (tenant.isPresent()) {
-            try (var sql = conexao.prepareStatement("select set_config('app.tenant_id', ?, true)")) {
-                sql.setString(1, tenant.get().toString());
-                sql.execute();
+    public void afterPropertiesSet() {
+        super.afterPropertiesSet();
+        // depois do super, que instala o dialeto da fábrica por cima de qualquer outro
+        setJpaDialect(new DialetoComTenant());
+    }
+
+    private static final class DialetoComTenant extends HibernateJpaDialect {
+
+        @Override
+        public Object beginTransaction(EntityManager entidades, TransactionDefinition definicao)
+                throws PersistenceException, SQLException, TransactionException {
+            var dados = super.beginTransaction(entidades, definicao);
+            var tenant = TenantContext.atual();
+            if (tenant.isPresent()) {
+                entidades.unwrap(Session.class).doWork(conexao -> {
+                    try (var sql = conexao.prepareStatement("select set_config('app.tenant_id', ?, true)")) {
+                        sql.setString(1, tenant.get().toString());
+                        sql.execute();
+                    }
+                });
             }
+            return dados;
         }
     }
 }

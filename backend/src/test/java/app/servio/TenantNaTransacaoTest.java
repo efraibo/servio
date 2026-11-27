@@ -3,27 +3,20 @@ package app.servio;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 import app.servio.tenant.Gravacao;
 import app.servio.tenant.GravacaoSemEfeitoException;
 import app.servio.tenant.TenantContext;
+import com.zaxxer.hikari.HikariDataSource;
 import java.io.IOException;
-import java.lang.reflect.Constructor;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.UUID;
-import javax.sql.DataSource;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.core.env.Environment;
@@ -146,32 +139,63 @@ class TenantNaTransacaoTest extends ComPostgres {
                 .isInstanceOf(NullPointerException.class);
     }
 
+    /** Falha real no set_config: o superusuário tira o EXECUTE e devolve em seguida. */
     @Test
     void falhaAoDefinirOTenantNaoDeixaTransacaoAberta() throws SQLException {
-        var conexao = mock(Connection.class);
-        when(conexao.getAutoCommit()).thenReturn(true);
-        when(conexao.prepareStatement(anyString())).thenThrow(new SQLException("falha simulada"));
-        var origem = mock(DataSource.class);
-        when(origem.getConnection()).thenReturn(conexao);
-        // o mesmo gerente da aplicação, sobre um banco que falha no set_config
-        var quebrado = (PlatformTransactionManager) BeanUtils.instantiateClass(
-                construtor(gerente.getClass()), origem);
-
-        assertThatThrownBy(() -> TenantContext.executarComo(A,
-                        () -> new TransactionTemplate(quebrado).execute(s -> null)))
-                .hasStackTraceContaining("falha simulada");
+        comoSuperusuario("REVOKE EXECUTE ON FUNCTION set_config(text, text, boolean) FROM PUBLIC");
+        try {
+            assertThatThrownBy(() -> TenantContext.executarComo(A, () -> transacao().execute(s -> null)))
+                    .hasStackTraceContaining("permission denied");
+        } finally {
+            comoSuperusuario("GRANT EXECUTE ON FUNCTION set_config(text, text, boolean) TO PUBLIC");
+        }
 
         assertThat(TransactionSynchronizationManager.isActualTransactionActive()).isFalse();
-        assertThat(TransactionSynchronizationManager.hasResource(origem)).isFalse();
-        verify(conexao).close();
+        assertThat(TransactionSynchronizationManager.getResourceMap()).isEmpty();
+        assertThat(((HikariDataSource) jdbc.getDataSource()).getHikariPoolMXBean().getActiveConnections())
+                .isZero();
+        TenantContext.executarComo(B, () -> transacao().execute(s -> {
+            assertThat(s.isNewTransaction()).isTrue();
+            assertThat(tenantNoBanco()).isEqualTo(B.toString());
+            return null;
+        }));
     }
 
-    private static Constructor<?> construtor(Class<?> classe) {
-        try {
-            return classe.getDeclaredConstructor(DataSource.class);
-        } catch (NoSuchMethodException e) {
-            throw new AssertionError(e);
+    private static void comoSuperusuario(String comando) throws SQLException {
+        try (var admin = DriverManager.getConnection(
+                        POSTGRES.getJdbcUrl(), POSTGRES.getUsername(), POSTGRES.getPassword());
+                var sql = admin.createStatement()) {
+            sql.execute(comando);
         }
+    }
+
+    @Test
+    void transacaoSomenteLeituraTambemRecebeOTenant() {
+        var leitura = transacao();
+        leitura.setReadOnly(true);
+
+        TenantContext.executarComo(A, () -> leitura.execute(s -> {
+            assertThat(jdbc.queryForObject("show transaction_read_only", String.class)).isEqualTo("on");
+            assertThat(tenantNoBanco()).isEqualTo(A.toString());
+            return null;
+        }));
+    }
+
+    @Test
+    void naoTrocaDeTenantEmEscopoSupportsSemTransacao() {
+        var supports = transacao();
+        supports.setPropagationBehavior(TransactionDefinition.PROPAGATION_SUPPORTS);
+
+        // a sessão do Hibernate é reaproveitada no escopo, com o tenant de quando foi aberta
+        assertThatThrownBy(() -> TenantContext.executarComo(A, () -> supports.execute(
+                        s -> TenantContext.executarComo(B, () -> null))))
+                .isInstanceOf(IllegalStateException.class);
+    }
+
+    @Test
+    void uuidZeroEhRecusado() {
+        assertThatThrownBy(() -> TenantContext.executarComo(new UUID(0, 0), () -> null))
+                .isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
