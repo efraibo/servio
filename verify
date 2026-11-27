@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+# 🔵 Verificação única do repositório (ADR-0003, item 6): a mesma para pessoas, hook e CI.
+set -euo pipefail
+cd "$(dirname "$0")"
+
+uso() { echo "uso: ./verify [--back|--front|--help]   (sem opção: os dois lados)"; }
+erro() { echo "verify: $1" >&2; exit 1; }
+
+[ $# -le 1 ] || { uso >&2; exit 2; }
+back=1 front=1
+case "${1:-}" in
+  "") ;;
+  --back) front=0 ;;
+  --front) back=0 ;;
+  --help) uso; exit 0 ;;
+  *) uso >&2; exit 2 ;;
+esac
+
+# O mvnw prefere JAVA_HOME ao PATH; confere o mesmo java que ele vai usar.
+java="${JAVA_HOME:+$JAVA_HOME/bin/}java"
+versao_java="$("$java" -version 2>&1 | sed -n 's/.* version "\([0-9]*\).*/\1/p' | head -n 1)" || versao_java=""
+[ "$versao_java" = 25 ] || erro "preciso do Java 25 (ADR-0003); encontrado: ${versao_java:-nenhum}. Ajuste JAVA_HOME."
+versao_node="$(node --version 2>/dev/null)" || versao_node=""
+[[ "$versao_node" == v26.* ]] || erro "preciso do Node 26 (ADR-0003); encontrado: ${versao_node:-nenhum}. Com nvm: nvm use"
+
+# Ordem de falha rápida da ADR-0003: front antes do back.
+if [ "$front" = 1 ]; then
+  echo "== frontend"
+  if [ -f frontend/angular.json ]; then
+    erro "há um projeto Angular, mas o front ainda não foi integrado ao verify (SRV-32)."
+  fi
+  echo "aviso: frontend/ sem projeto Angular; pulado."
+fi
+
+if [ "$back" = 1 ]; then
+  echo "== backend"
+  (cd backend && ./mvnw -B clean verify)
+fi
+
+echo "verify: OK"
