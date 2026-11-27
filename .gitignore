@@ -3,3 +3,4 @@ CLAUDE.local.md
 .claude/settings.local.json
 .DS_Store
 backend/target/
+infra/.env
