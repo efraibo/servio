@@ -1,0 +1,9 @@
+# 🔵 ADR-0001, condição 1: a aplicação usa o papel restrito; as migrações, o papel dono.
+spring:
+  datasource:
+    url: ${SERVIO_DB_URL:jdbc:postgresql://localhost:5432/servio}
+    username: servio_app
+    password: ${SERVIO_APP_PASSWORD}
+  flyway:
+    user: servio_owner
+    password: ${SERVIO_OWNER_PASSWORD}
