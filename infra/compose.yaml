@@ -1,0 +1,26 @@
+# 🟢 Ambiente local: só o PostgreSQL (ADR-0003, item 5). Variáveis em infra/.env.
+# Os papéis são criados só com o volume vazio: se o script falhar, rode `down -v` antes do próximo `up`.
+name: servio
+
+services:
+  postgres:
+    image: postgres:18
+    environment:
+      POSTGRES_DB: servio
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?defina em infra/.env}
+      SERVIO_OWNER_PASSWORD: ${SERVIO_OWNER_PASSWORD:?defina em infra/.env}
+      SERVIO_APP_PASSWORD: ${SERVIO_APP_PASSWORD:?defina em infra/.env}
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql
+      - ./postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      # Por TCP: durante a inicialização o servidor só escuta no socket.
+      test: ["CMD", "pg_isready", "-h", "127.0.0.1", "-U", "postgres", "-d", "servio"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+volumes:
+  pgdata:
