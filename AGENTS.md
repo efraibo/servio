@@ -21,7 +21,7 @@ Fora das estórias acima, valem as aprovações abaixo.
 - Jira SRV: leitura livre; cada criação, edição ou transição precisa de aprovação.
 - No vault, escreva só dentro de `servio/`.
 - Só dados fictícios; nada de dado, código ou prompt de empresa real.
-- "Passou" ou "pronto" só com comando executado e saída resumida. A verificação é `./verify` (Java 25, Node 26 via `.nvmrc`, Docker aberto); ainda não há CI (SRV-30).
+- "Passou" ou "pronto" só com comando executado e saída resumida. A verificação é `./verify` (Java 25, Node 26 via `.nvmrc`, Docker aberto); a CI roda o mesmo comando em todo PR, e a `main` só aceita squash com o check `verify` verde.
 - Em arquivos novos, marque 🟣 Claude Code, 🔵 portável, 🟢 neutro.
 
 ## Convenções (ADR-0003)
