@@ -1,5 +1,7 @@
 # 🔵 ADR-0001, condição 1: a aplicação usa o papel restrito; as migrações, o papel dono.
 spring:
+  jpa:
+    open-in-view: false # ADR-0001, condição 13
   datasource:
     url: ${SERVIO_DB_URL:jdbc:postgresql://localhost:5432/servio}
     username: servio_app
