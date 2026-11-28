@@ -92,7 +92,8 @@ class CoberturaDeRlsTest extends ComPostgres {
 
     @Test
     void tabelasDaListaNominalSaoIgnoradas() throws SQLException, IOException {
-        for (var tabela : List.of("tenants", "spring_session", "spring_session_attributes")) {
+        // tenants já existe (SRV-6)
+        for (var tabela : List.of("spring_session", "spring_session_attributes")) {
             executar("CREATE TABLE " + tabela + " (id uuid)");
         }
         executar("CREATE TABLE tenants_extra (id uuid)");

@@ -45,14 +45,15 @@ class AlertaSemTenantTest extends ComPostgres {
         remove();
         comoDono(Files.readString(Path.of("src/main/resources/db/modelo/tabela_de_negocio.sql"))
                 .replace("__tabela__", "exemplo_alerta"));
-        for (var tabela : new String[] {"tenants", "spring_session", "spring_session_attributes"}) {
+        // tenants já existe (SRV-6)
+        for (var tabela : new String[] {"spring_session", "spring_session_attributes"}) {
             comoDono("CREATE TABLE " + tabela + " (id uuid); GRANT SELECT ON " + tabela + " TO servio_app");
         }
     }
 
     @AfterEach
     void remove() throws SQLException {
-        comoDono("DROP TABLE IF EXISTS exemplo_alerta, tenants, spring_session, spring_session_attributes");
+        comoDono("DROP TABLE IF EXISTS exemplo_alerta, spring_session, spring_session_attributes");
     }
 
     @Test

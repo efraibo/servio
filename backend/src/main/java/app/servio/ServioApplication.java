@@ -8,6 +8,10 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 public class ServioApplication {
 
     public static void main(String[] args) {
-        SpringApplication.run(ServioApplication.class, args);
+        var contexto = SpringApplication.run(ServioApplication.class, args);
+        // o provisionamento é um comando: termina em vez de ficar no ar
+        if (contexto.getEnvironment().matchesProfiles("provisionamento")) {
+            System.exit(SpringApplication.exit(contexto));
+        }
     }
 }

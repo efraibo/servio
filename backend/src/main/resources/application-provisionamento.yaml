@@ -1,0 +1,7 @@
+# 🔵 Provisionamento (RN-18): conecta com o papel dono, o único que cria oficinas.
+spring:
+  main:
+    web-application-type: none # comando: nunca abre servidor conectado como dono
+  datasource:
+    username: servio_owner
+    password: ${SERVIO_OWNER_PASSWORD}
