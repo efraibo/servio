@@ -8,7 +8,7 @@ Agendamento e ordem de serviço white-label; R1 atende oficinas de moto. Java/Sp
 
 ## Autonomia (aprovada em 2026-11-28): SRV-6, 21, 14 e 45
 Nestas estórias vale esta seção, também sobre os passos "pare", "pode codar" e "com aprovação" das skills de estória.
-- Faça sem perguntar: abrir, planejar, codar em TDD, revisar e fechar; branch, commit, push, PR e merge por squash com o check `verify` verde (autorizado em 2026-11-28); no Jira, transição e comentário de fechamento delas; detalhe técnico que PRD e ADRs não fixam, registrado em `estorias/SRV-xx.md`.
+- Faça sem perguntar: abrir, planejar, codar em TDD, revisar e fechar; branch, commit, push, PR e merge pelo auto-merge do GitHub, que só faz o squash com o check `verify` verde (autorizado em 2026-11-28); no Jira, transição e comentário de fechamento delas; detalhe técnico que PRD e ADRs não fixam, registrado em `estorias/SRV-xx.md`.
 - Feche a estória só com o check `verify` do PR verde.
 - Pergunte antes de: mudar a proteção de branch; regra de negócio sem resposta; mudar PRD ou ADR; criar ou reescrever estória; instalar software, apagar dados ou gerar custo; seguir com verificação falhando sem correção no escopo.
 - O repositório é público: confira o diff antes de cada push.
@@ -35,7 +35,14 @@ Fora das estórias acima, valem as aprovações abaixo.
 - Estado do projeto fica no vault e no repo, nunca só na conversa.
 - Divergência entre fontes: registre em `servio/divergencias.md`.
 
+## Entrega
+- Com autonomia: `scripts/entregar.sh --auto-merge "<assunto>" "<título>" <corpo>`; sem ela, sem a opção. Nunca `--admin`.
+- Conclua a estória só depois de ler o PR como mergeado; uma leitura, sem esperar a CI em laço.
+- Uma estória por sessão: ao concluir, grave o vault e peça `/clear`.
+- "Feito" no relato só depois de ler o resultado da ferramenta que o fez.
+
 ## Orçamento de tokens
+- Escrita no Jira por `executeWrite` com `responseFields` mínimo; leitura com `fields` explícitos.
 - Cartão (`servio/contexto/`) antes da fonte; da fonte, só a seção necessária.
 - Não releia o que já leu na sessão.
 - Jira: peça só os campos necessários.
