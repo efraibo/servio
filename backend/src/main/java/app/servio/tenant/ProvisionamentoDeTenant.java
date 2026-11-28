@@ -1,6 +1,8 @@
 // 🔵
 package app.servio.tenant;
 
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.regex.Pattern;
@@ -18,6 +20,8 @@ public class ProvisionamentoDeTenant {
 
     private static final Pattern SLUG = Pattern.compile("[a-z0-9-]+");
     private static final Pattern COR = Pattern.compile("#[0-9A-Fa-f]{6}");
+
+    private static final String SELECAO = "select id, nome, slug, cor_primaria, cor_secundaria, ativo from tenants";
 
     private final JdbcTemplate jdbc;
 
@@ -46,18 +50,24 @@ public class ProvisionamentoDeTenant {
 
     @Transactional(readOnly = true)
     public Optional<Tenant> consultar(UUID id) {
-        return jdbc.query(
-                        "select id, nome, slug, cor_primaria, cor_secundaria, ativo from tenants where id = ?",
-                        (linha, n) -> new Tenant(
-                                linha.getObject("id", UUID.class),
-                                linha.getString("nome"),
-                                linha.getString("slug"),
-                                linha.getString("cor_primaria"),
-                                linha.getString("cor_secundaria"),
-                                linha.getBoolean("ativo")),
-                        id)
-                .stream()
+        return jdbc.query(SELECAO + " where id = ?", ProvisionamentoDeTenant::tenant, id).stream()
                 .findFirst();
+    }
+
+    @Transactional(readOnly = true)
+    public Optional<Tenant> consultarPorSlug(String slug) {
+        return jdbc.query(SELECAO + " where slug = ?", ProvisionamentoDeTenant::tenant, slug).stream()
+                .findFirst();
+    }
+
+    private static Tenant tenant(ResultSet linha, int numero) throws SQLException {
+        return new Tenant(
+                linha.getObject("id", UUID.class),
+                linha.getString("nome"),
+                linha.getString("slug"),
+                linha.getString("cor_primaria"),
+                linha.getString("cor_secundaria"),
+                linha.getBoolean("ativo"));
     }
 
     private static void exigir(boolean condicao, String motivo) {
