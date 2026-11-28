@@ -3,6 +3,7 @@ package app.servio;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import app.servio.acesso.ProvisionamentoDeGestor;
 import app.servio.tenant.ProvisionamentoDeTenant;
@@ -16,13 +17,16 @@ import java.util.UUID;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.stream.Stream;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.DefaultApplicationArguments;
@@ -35,7 +39,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 
-/** SRV-21, cenários 1 a 5 (RN-18, RN-19, RN-22, RN-23). */
+/** SRV-21, cenários 1 a 5 (RN-18, RN-19, RN-22, RN-23), e SRV-46, cenários 1, 2 e 4. */
 @SpringBootTest(
         args = {"--slug=inicial", "--email=inicial@oficina.test"},
         properties = "SERVIO_GESTOR_SENHA=senha-inicial-ficticia")
@@ -134,6 +138,55 @@ class ProvisionamentoDeGestorTest extends ComPostgres {
                     }
                 });
         assertThat(usuarios(oficina)).isEmpty();
+    }
+
+    /** SRV-46, cenários 1, 2 e 4: oito espaços, formato e tamanho do e-mail, recusa sem o dado. */
+    @ParameterizedTest
+    @MethodSource("entradasMalFormadas")
+    void entradaMalFormadaNaoCriaNemRepeteODado(String email, String senha, String motivo, CapturedOutput saida) {
+        assertThatThrownBy(() -> gestores.provisionar("oficina-a", email, senha))
+                .isInstanceOf(ProvisionamentoRecusadoException.class)
+                .hasMessageContaining(motivo)
+                .satisfies(e -> assertThat(e.getMessage()).doesNotContain(email, senha));
+        assertThat(saida.getAll()).doesNotContain(email);
+        // senha em branco aparece em qualquer log
+        if (!senha.isBlank()) {
+            assertThat(saida.getAll()).doesNotContain(senha);
+        }
+        assertThat(usuarios(oficina)).isEmpty();
+    }
+
+    static Stream<Arguments> entradasMalFormadas() {
+        return Stream.of(
+                arguments("gestor@oficina.test", "        ", "só por espaços"),
+                arguments("gestor@oficina.test", "\t\t\t\t\u00a0\u00a0\u00a0\u00a0", "só por espaços"),
+                arguments("gestor.oficina.test", SENHA, "e-mail inválido"),
+                arguments("@oficina.test", SENHA, "e-mail inválido"),
+                arguments("gestor@", SENHA, "e-mail inválido"),
+                arguments("gestor@@oficina.test", SENHA, "e-mail inválido"),
+                arguments("ges tor@oficina.test", SENHA, "e-mail inválido"),
+                arguments("gestor@oficina\u00a0.test", SENHA, "e-mail inválido"),
+                arguments(emailCom(255), SENHA, "no máximo 254"));
+    }
+
+    @ParameterizedTest
+    @MethodSource("emailsNoLimite")
+    void emailNoLimiteDaRegraCria(String email) {
+        gestores.provisionar("oficina-a", email, SENHA);
+
+        assertThat(usuarios(oficina)).singleElement().satisfies(u -> assertThat(u)
+                .containsEntry("email", email.strip()));
+    }
+
+    static Stream<String> emailsNoLimite() {
+        // o limite conta code points do que é gravado, sem os espaços das pontas
+        var comSuplementar = "\uD835\uDD64" + emailCom(253);
+        return Stream.of(emailCom(254), "  " + emailCom(254) + "  ", comSuplementar, "gestor@oficina");
+    }
+
+    private static String emailCom(int tamanho) {
+        var dominio = "@oficina.test";
+        return "g".repeat(tamanho - dominio.length()) + dominio;
     }
 
     @Test

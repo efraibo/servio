@@ -12,6 +12,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.DefaultApplicationArguments;
@@ -19,7 +20,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 
-/** SRV-6, cenários 1 a 4 (RN-17, RN-18, RN-24). */
+/** SRV-6, cenários 1 a 4 (RN-17, RN-18, RN-24), e SRV-46, cenário 3 (RN-24). */
 @SpringBootTest(args = {"--nome=Inicial", "--slug=inicial", "--cor-primaria=#000000", "--cor-secundaria=#FFFFFF"})
 @ActiveProfiles("provisionamento")
 class ProvisionamentoDeTenantTest extends ComPostgres {
@@ -72,6 +73,10 @@ class ProvisionamentoDeTenantTest extends ComPostgres {
             Oficina,  oficina_a, '#1A73E8', '#F4B400', slug
             Oficina,  '',        '#1A73E8', '#F4B400', slug
             Oficina,  NULO,      '#1A73E8', '#F4B400', slug
+            Oficina,  api,       '#1A73E8', '#F4B400', slug
+            Oficina,  123,       '#1A73E8', '#F4B400', slug
+            Oficina,  1-2,       '#1A73E8', '#F4B400', slug
+            Oficina,  a234567890123456789012345678901234567890123456789012345678901234, '#1A73E8', '#F4B400', slug
             """)
     void entradaInvalidaNaoCriaEDizOMotivo(
             String nome, String slug, String primaria, String secundaria, String motivo) {
@@ -79,6 +84,19 @@ class ProvisionamentoDeTenantTest extends ComPostgres {
                 .isInstanceOf(ProvisionamentoRecusadoException.class)
                 .hasMessageContaining(motivo);
         assertThat(jdbc.queryForObject("select count(*) from tenants", Integer.class)).isZero();
+    }
+
+    /** RN-24: o limite e os parecidos com os recusados continuam valendo. */
+    @ParameterizedTest
+    @ValueSource(strings = {
+        "a23456789012345678901234567890123456789012345678901234567890123",
+        "1-a",
+        "api-motos"
+    })
+    void slugNoLimiteDaRegraCria(String slug) {
+        var id = provisionamento.provisionar("Oficina A", slug, "#1A73E8", "#F4B400");
+
+        assertThat(provisionamento.consultar(id)).map(Tenant::slug).contains(slug);
     }
 
     @Test

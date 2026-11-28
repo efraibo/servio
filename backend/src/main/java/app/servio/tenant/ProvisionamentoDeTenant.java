@@ -18,7 +18,11 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class ProvisionamentoDeTenant {
 
-    private static final Pattern SLUG = Pattern.compile("[a-z0-9-]+");
+    // ao menos uma letra
+    private static final Pattern SLUG = Pattern.compile("[a-z0-9-]*[a-z][a-z0-9-]*");
+    private static final int TAMANHO_MAXIMO_DO_SLUG = 63;
+    // primeiro segmento das rotas da API: /api/{slug}/login
+    private static final String SLUG_RESERVADO = "api";
     private static final Pattern COR = Pattern.compile("#[0-9A-Fa-f]{6}");
 
     private static final String SELECAO = "select id, nome, slug, cor_primaria, cor_secundaria, ativo from tenants";
@@ -32,8 +36,12 @@ public class ProvisionamentoDeTenant {
     @Transactional
     public UUID provisionar(String nome, String slug, String corPrimaria, String corSecundaria) {
         exigir(nome != null && !nome.isBlank(), "o nome é obrigatório");
+        // o tamanho vem antes do regex, que é quadrático em entradas enormes
+        exigir(slug == null || slug.length() <= TAMANHO_MAXIMO_DO_SLUG,
+                "slug inválido: no máximo " + TAMANHO_MAXIMO_DO_SLUG + " caracteres");
         exigir(slug != null && SLUG.matcher(slug).matches(),
-                "slug inválido: use letras minúsculas sem acento, números e hífen");
+                "slug inválido: use letras minúsculas sem acento, números e hífen, com ao menos uma letra");
+        exigir(!slug.equals(SLUG_RESERVADO), "slug inválido: " + SLUG_RESERVADO + " é reservado");
         exigir(corPrimaria != null && COR.matcher(corPrimaria).matches(), "cor primária inválida: use #RRGGBB");
         exigir(corSecundaria != null && COR.matcher(corSecundaria).matches(), "cor secundária inválida: use #RRGGBB");
 
