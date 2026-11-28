@@ -47,6 +47,17 @@ class TenantIdObrigatorioTest extends ComPostgres {
                 .contains("SemAnotacao", "@TenantId");
     }
 
+    @Test
+    void acusaTambemQuandoATabelaVemComSchemaAspasOuMaiusculas() {
+        class SemAnotacao {}
+
+        for (var tabela : List.of("public.usuarios", "\"usuarios\"", "PUBLIC.Usuarios")) {
+            assertThat(TenantIdObrigatorio.violacoes(Map.of(SemAnotacao.class, tabela), tabelasComTenantId()))
+                    .as(tabela)
+                    .hasSize(1);
+        }
+    }
+
     /** Classe de cada entidade que o Hibernate conhece e a tabela dela. */
     private Map<Class<?>, String> entidades() {
         var entidades = new HashMap<Class<?>, String>();

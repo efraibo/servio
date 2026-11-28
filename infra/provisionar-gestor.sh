@@ -5,10 +5,13 @@
 #   infra/provisionar-gestor.sh --slug=oficina-a --email=gestor@oficina-a.test
 set -euo pipefail
 cd "$(dirname "$0")/../backend"
-if [ -z "${SERVIO_GESTOR_SENHA:-}" ]; then
-  IFS= read -rsp "Senha do Gestor: " SERVIO_GESTOR_SENHA
+# a senha não vai para o ambiente do Maven: compila sem ela e só o java a recebe
+senha="${SERVIO_GESTOR_SENHA:-}"
+unset SERVIO_GESTOR_SENHA
+./mvnw -q -B -DskipTests package
+if [ -z "$senha" ]; then
+  IFS= read -rsp "Senha do Gestor: " senha
   echo
 fi
-export SERVIO_GESTOR_SENHA
-./mvnw -q -B -DskipTests package
-exec java -jar target/backend-0.0.1-SNAPSHOT.jar --spring.profiles.active=provisionamento,gestor "$@"
+SERVIO_GESTOR_SENHA="$senha" exec java -jar target/backend-0.0.1-SNAPSHOT.jar \
+  --spring.profiles.active=provisionamento,gestor "$@"

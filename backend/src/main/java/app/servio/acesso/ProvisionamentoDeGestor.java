@@ -40,7 +40,7 @@ public class ProvisionamentoDeGestor {
 
         var normalizado = email.strip().toLowerCase(Locale.ROOT);
         var hash = codificador.encode(senha);
-        return TenantContext.executarComo(oficina, () -> cadastro.cadastrar(normalizado, hash));
+        return TenantContext.executarComo(oficina, () -> cadastro.cadastrar(oficina, normalizado, hash));
     }
 
     private static void exigir(boolean condicao, String motivo) {

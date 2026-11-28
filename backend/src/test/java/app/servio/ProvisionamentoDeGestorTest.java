@@ -13,6 +13,9 @@ import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -34,7 +37,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 /** SRV-21, cenários 1 a 5 (RN-18, RN-19, RN-22, RN-23). */
 @SpringBootTest(
-        args = {"--slug=inicial", "--email=inicial@oficina.com"},
+        args = {"--slug=inicial", "--email=inicial@oficina.test"},
         properties = "SERVIO_GESTOR_SENHA=senha-inicial-ficticia")
 @ActiveProfiles({"provisionamento", "gestor"})
 @ExtendWith(OutputCaptureExtension.class)
@@ -90,19 +93,19 @@ class ProvisionamentoDeGestorTest extends ComPostgres {
 
     @Test
     void criaGestorAtivoNoTenantComEmailEmMinusculas() {
-        var id = gestores.provisionar("oficina-a", "Gestor@Oficina.com", SENHA);
+        var id = gestores.provisionar("oficina-a", "Gestor@Oficina.test", SENHA);
 
         assertThat(usuarios(oficina)).singleElement().satisfies(u -> assertThat(u)
                 .containsEntry("id", id)
                 .containsEntry("tenant_id", oficina)
-                .containsEntry("email", "gestor@oficina.com")
+                .containsEntry("email", "gestor@oficina.test")
                 .containsEntry("perfil", "GESTOR")
                 .containsEntry("ativo", true));
     }
 
     @Test
     void guardaSoOHashDaSenha(CapturedOutput saida) throws Exception {
-        comando.run(new DefaultApplicationArguments("--slug=oficina-a", "--email=gestor@oficina.com"));
+        comando.run(new DefaultApplicationArguments("--slug=oficina-a", "--email=gestor@oficina.test"));
 
         var linha = usuarios(oficina).getFirst();
         var hash = (String) linha.get("senha_hash");
@@ -114,49 +117,97 @@ class ProvisionamentoDeGestorTest extends ComPostgres {
 
     @ParameterizedTest
     @CsvSource(nullValues = "NULO", textBlock = """
-            oficina-a,   gestor@oficina.com, 1234567,          senha com no mínimo 8 caracteres
-            oficina-a,   gestor@oficina.com, NULO,             senha com no mínimo 8 caracteres
-            nao-existe,  gestor@oficina.com, senha-ficticia-1, oficina inexistente
-            NULO,        gestor@oficina.com, senha-ficticia-1, oficina inexistente
+            oficina-a,   gestor@oficina.test, 1234567,          senha com no mínimo 8 caracteres
+            oficina-a,   gestor@oficina.test, NULO,             senha com no mínimo 8 caracteres
+            nao-existe,  gestor@oficina.test, senha-ficticia-1, oficina inexistente
+            NULO,        gestor@oficina.test, senha-ficticia-1, oficina inexistente
             oficina-a,   '   ',              senha-ficticia-1, e-mail é obrigatório
             oficina-a,   NULO,               senha-ficticia-1, e-mail é obrigatório
             """)
     void entradaInvalidaNaoCriaEDizOMotivo(String slug, String email, String senha, String motivo) {
         assertThatThrownBy(() -> gestores.provisionar(slug, email, senha))
                 .isInstanceOf(ProvisionamentoRecusadoException.class)
-                .hasMessageContaining(motivo);
+                .hasMessageContaining(motivo)
+                .satisfies(e -> {
+                    if (senha != null) {
+                        assertThat(e.getMessage()).doesNotContain(senha);
+                    }
+                });
         assertThat(usuarios(oficina)).isEmpty();
     }
 
     @Test
     void emailRepetidoNaOficinaNaoCriaMasValeEmOutra() {
-        TenantContext.executarComo(oficina, () -> new TransactionTemplate(gerente)
-                .execute(t -> jdbc.update(
-                        "insert into usuarios (tenant_id, id, email, senha_hash, perfil)"
-                                + " values (?, ?, 'gestor@oficina.com', 'x', 'ATENDENTE')",
-                        oficina, UUID.randomUUID())));
+        inserir("gestor@oficina.test", "ATENDENTE", true);
 
-        assertThatThrownBy(() -> gestores.provisionar("oficina-a", "GESTOR@oficina.com", SENHA))
+        assertThatThrownBy(() -> gestores.provisionar("oficina-a", "GESTOR@oficina.test", SENHA))
                 .isInstanceOf(ProvisionamentoRecusadoException.class)
-                .hasMessageContaining("e-mail já existe na oficina");
+                .hasMessageContaining("e-mail já existe na oficina")
+                .satisfies(e -> assertThat(e.getMessage()).doesNotContainIgnoringCase("@oficina.test"));
         assertThat(usuarios(oficina)).hasSize(1);
 
         var outra = oficinas.provisionar("Oficina B", "oficina-b", "#000000", "#FFFFFF");
-        gestores.provisionar("oficina-b", "GESTOR@oficina.com", SENHA);
+        gestores.provisionar("oficina-b", "GESTOR@oficina.test", SENHA);
         assertThat(usuarios(outra)).hasSize(1);
     }
 
     @Test
     void comGestorAtivoFalhaSemAlterar() {
-        gestores.provisionar("oficina-a", "gestor@oficina.com", SENHA);
+        gestores.provisionar("oficina-a", "gestor@oficina.test", SENHA);
         var antes = usuarios(oficina);
 
-        for (var email : List.of("gestor@oficina.com", "outro@oficina.com")) {
+        for (var email : List.of("gestor@oficina.test", "outro@oficina.test")) {
             assertThatThrownBy(() -> gestores.provisionar("oficina-a", email, "outra-senha-ficticia"))
                     .isInstanceOf(ProvisionamentoRecusadoException.class)
                     .hasMessageContaining("já tem um Gestor ativo");
         }
         assertThat(usuarios(oficina)).isEqualTo(antes);
+    }
+
+    @Test
+    void senhaComExatamenteOitoCaracteresEEmailComEspacosSaoAceitos() {
+        gestores.provisionar("oficina-a", "  Gestor@Oficina.test ", "12345678");
+
+        assertThat(usuarios(oficina)).singleElement().satisfies(u -> assertThat(u)
+                .containsEntry("email", "gestor@oficina.test"));
+    }
+
+    @Test
+    void gestorInativoNaoImpedeUmNovo() {
+        inserir("antigo@oficina.test", "GESTOR", false);
+
+        gestores.provisionar("oficina-a", "gestor@oficina.test", SENHA);
+
+        assertThat(usuarios(oficina)).hasSize(2);
+    }
+
+    /** Duas execuções ao mesmo tempo: a segunda espera a primeira e enxerga o Gestor dela (RN-23). */
+    @Test
+    void execucaoSimultaneaEsperaERecusa() throws Exception {
+        try (var outra = DriverManager.getConnection(POSTGRES.getJdbcUrl(), "servio_owner", SENHA_OWNER);
+                var sql = outra.createStatement();
+                var executor = Executors.newSingleThreadExecutor()) {
+            outra.setAutoCommit(false);
+            sql.execute("select set_config('app.tenant_id', '" + oficina + "', true)");
+            sql.execute("select id from tenants where id = '" + oficina + "' for update");
+            sql.execute("insert into usuarios (tenant_id, id, email, senha_hash, perfil) values ('" + oficina
+                    + "', gen_random_uuid(), 'primeiro@oficina.test', 'x', 'GESTOR')");
+
+            var concorrente = executor.submit(() -> gestores.provisionar("oficina-a", "segundo@oficina.test", SENHA));
+            assertThatThrownBy(() -> concorrente.get(3, TimeUnit.SECONDS)).isInstanceOf(TimeoutException.class);
+            outra.commit();
+
+            assertThatThrownBy(() -> concorrente.get(20, TimeUnit.SECONDS))
+                    .hasMessageContaining("já tem um Gestor ativo");
+        }
+        assertThat(usuarios(oficina)).hasSize(1);
+    }
+
+    private void inserir(String email, String perfil, boolean ativo) {
+        TenantContext.executarComo(oficina, () -> new TransactionTemplate(gerente)
+                .execute(t -> jdbc.update(
+                        "insert into usuarios (tenant_id, id, email, senha_hash, perfil, ativo) values (?, ?, ?, 'x', ?, ?)",
+                        oficina, UUID.randomUUID(), email, perfil, ativo)));
     }
 
     private List<Map<String, Object>> usuarios(UUID tenant) {

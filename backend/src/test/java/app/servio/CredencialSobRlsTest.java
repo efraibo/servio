@@ -37,8 +37,8 @@ class CredencialSobRlsTest extends ComPostgres {
         limpar();
         oficina(A, "credencial-a");
         oficina(B, "credencial-b");
-        como(A, () -> gravar(A, "gestor-a@oficina.com"));
-        como(B, () -> gravar(B, "gestor-b@oficina.com"));
+        como(A, () -> gravar(A, "gestor-a@oficina.test"));
+        como(B, () -> gravar(B, "gestor-b@oficina.test"));
     }
 
     @AfterEach
@@ -48,15 +48,15 @@ class CredencialSobRlsTest extends ComPostgres {
 
     @Test
     void cadaTenantLeSoASuaESemTenantNadaVem() {
-        assertThat(como(A, this::emails)).containsExactly("gestor-a@oficina.com");
-        assertThat(como(B, this::emails)).containsExactly("gestor-b@oficina.com");
+        assertThat(como(A, this::emails)).containsExactly("gestor-a@oficina.test");
+        assertThat(como(B, this::emails)).containsExactly("gestor-b@oficina.test");
         List<String> semTenant = new TransactionTemplate(gerente).execute(s -> emails());
         assertThat(semTenant).isEmpty();
     }
 
     @Test
     void gravarComOutroTenantEhRejeitado() {
-        assertThatThrownBy(() -> como(A, () -> gravar(B, "invasor@oficina.com")))
+        assertThatThrownBy(() -> como(A, () -> gravar(B, "invasor@oficina.test")))
                 .hasStackTraceContaining("row-level security");
     }
 
