@@ -6,9 +6,9 @@ Agendamento e ordem de serviço white-label; R1 atende oficinas de moto. Java/Sp
 - Produto, RN e RNF: `docs/produto/prd.md` · Decisões: `docs/adr/` · DoR/DoD: `docs/processo/definicao-de-pronto.md`
 - Vault `servio/` (estado, cartões, histórico): caminho em `CLAUDE.local.md`; se não houver, pergunte.
 
-## Autonomia (aprovada em 2026-11-26): SRV-26, 27, 28, 30 e 40 a 44
+## Autonomia (aprovada em 2026-11-28): SRV-6, 21, 14 e 45
 Nestas estórias vale esta seção, também sobre os passos "pare", "pode codar" e "com aprovação" das skills de estória.
-- Faça sem perguntar: abrir, planejar, codar em TDD, revisar e fechar; branch, commit, push, PR e merge por squash com o check `verify` verde (autorizado em 2026-11-26); no Jira, transição e comentário de fechamento delas; detalhe técnico que PRD e ADRs não fixam, registrado em `estorias/SRV-xx.md`.
+- Faça sem perguntar: abrir, planejar, codar em TDD, revisar e fechar; branch, commit, push, PR e merge por squash com o check `verify` verde (autorizado em 2026-11-28); no Jira, transição e comentário de fechamento delas; detalhe técnico que PRD e ADRs não fixam, registrado em `estorias/SRV-xx.md`.
 - Feche a estória só com o check `verify` do PR verde.
 - Pergunte antes de: mudar a proteção de branch; regra de negócio sem resposta; mudar PRD ou ADR; criar ou reescrever estória; instalar software, apagar dados ou gerar custo; seguir com verificação falhando sem correção no escopo.
 - O repositório é público: confira o diff antes de cada push.
