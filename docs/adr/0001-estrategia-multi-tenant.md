@@ -1,7 +1,7 @@
 # ADR-0001: Estratégia multi-tenant: banco compartilhado com `tenant_id` e Row Level Security
 
 - **Status:** Aceita
-- **Data:** 2026-11-19
+- **Data:** 2026-11-19 (condição 12 complementada em 2026-11-28)
 - **Decisor:** Evandro Nascimento
 - **Relacionado:** RN-01, RN-03, RN-18, RNF-01, RNF-05, RNF-09 do PRD; estórias SRV-6 e SRV-7; ADR-0002 (autenticação e identificação do tenant; condições 11 e 12 ajustadas por ela)
 
@@ -85,7 +85,7 @@ A decisão vale com as 13 condições abaixo.
 9. **Testes com PostgreSQL real.** Os testes de isolamento e de cobertura de RLS rodam com PostgreSQL real via Testcontainers, nunca H2.
 10. **Falha fechada.** As políticas têm `USING` e `WITH CHECK`. Sem `app.tenant_id` definido, nenhuma linha é lida nem gravada.
 11. **Origem do tenant.** Em requisições autenticadas, o tenant vem da sessão autenticada (ver ADR-0002), nunca de parâmetro, corpo ou URL enviados pelo cliente. Única ressalva: no login, o slug da oficina na URL é só dica de entrada para localizar a credencial e é validado pela senha; depois do login vale apenas o tenant da sessão (ADR-0002).
-12. **Tabelas de plataforma.** Tabelas sem tenant são exceções explícitas ao RLS e ficam listadas nesta ADR. Lista (alterada pela ADR-0002): `tenants` (só dados públicos: nome, slug, cores, logo e ativo), `spring_session` e `spring_session_attributes` (acessadas só pelo Spring Session, nunca por código da aplicação). As credenciais de usuário **não** são exceção: ficam sob RLS, e o login define o tenant a partir do slug no mesmo ponto único da condição 3. Qualquer inclusão na lista exige atualizar esta ADR. O teste de cobertura de RLS ignora as tabelas da lista por **lista nominal**, nunca por padrão de nome.
+12. **Tabelas de plataforma.** Tabelas sem tenant são exceções explícitas ao RLS e ficam listadas nesta ADR. Lista (alterada pela ADR-0002): `tenants` (só dados públicos: nome, slug, cores, logo e ativo), `spring_session` e `spring_session_attributes` (acessadas só pelo Spring Session, nunca por código da aplicação). As credenciais de usuário **não** são exceção: ficam sob RLS, e o login define o tenant a partir do slug no mesmo ponto único da condição 3. Qualquer inclusão na lista exige atualizar esta ADR. O teste de cobertura de RLS ignora as tabelas da lista por **lista nominal**, nunca por padrão de nome. O identificador do tenant é `uuid`: é o `id` de `tenants` e o `tenant_id` das tabelas de negócio.
 13. **Acesso sempre transacional.** `spring.jpa.open-in-view=false`; todo acesso a dados ocorre em métodos `@Transactional` (`readOnly = true` quando for leitura); e uma consulta que rode sem `app.tenant_id` definido gera log de alerta. O alerta ignora as tabelas de plataforma da lista nominal da condição 12 (as de sessão são lidas antes de o tenant ser conhecido).
 
 ## Consequências

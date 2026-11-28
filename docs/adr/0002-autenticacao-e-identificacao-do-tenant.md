@@ -1,7 +1,7 @@
 # ADR-0002: Autenticação e identificação do tenant: Spring Security com sessão JDBC e slug no caminho
 
 - **Status:** Aceita
-- **Data:** 2026-11-19
+- **Data:** 2026-11-19 (regra 3 complementada em 2026-11-28)
 - **Decisor:** Evandro Nascimento
 - **Relacionado:** RN-01, RN-18, RN-19, RN-20, RN-21, RNF-01, RNF-04 do PRD; matriz de permissões do PRD; features E1.2, E1.4 e E1.6; estórias SRV-6 e SRV-7; ADR-0001 (condições 11, 12 e 13, ajustadas por esta ADR)
 
@@ -93,7 +93,7 @@ Adotar **Spring Security sem processo extra (A)**, com **sessão no servidor via
 
 1. **Componentes padrão.** Só componentes padrão do Spring Security. Senhas com `PasswordEncoder` (BCrypt ou Argon2). Nenhuma criptografia própria.
 2. **Autenticação atrás de interface.** A verificação de credenciais fica atrás de uma interface (por exemplo, `Autenticador`) que devolve o principal (id do usuário, tenant e perfil). A implementação por credenciais locais é a única da R1. Código fora do módulo de autenticação depende só da interface. Trocar por Keycloak ou OIDC (como BFF com `oauth2Login`) muda a implementação, não a sessão, o cookie nem o CSRF.
-3. **Slug no caminho.** O login é `/{slug}/login`. No login o slug é só dica de entrada, usada para localizar a credencial e validada pela senha. Depois do login vale apenas o tenant da sessão (condição 11 da ADR-0001).
+3. **Slug no caminho.** O login é `/{slug}/login`. No login o slug é só dica de entrada, usada para localizar a credencial e validada pela senha. Depois do login vale apenas o tenant da sessão (condição 11 da ADR-0001). A tela de login é `/{slug}/login`. A API de login é `POST /api/{slug}/login`, sob o prefixo `/api` que o proxy encaminha ao backend (ADR-0003).
 4. **Slug divergente.** Se o slug da URL for diferente do tenant da sessão, a requisição é rejeitada (403 na API) e o front redireciona para o login da oficina do slug.
 5. **Resolução em ponto único.** A resolução slug → tenant acontece no mesmo ponto único que define `app.tenant_id` (condição 3 da ADR-0001), não espalhada pelo código.
 6. **Tabela `tenants` pública.** `tenants` guarda só dados públicos (nome, slug, cores, logo e ativo). Qualquer dado privado da oficina vai para tabela com `tenant_id` e RLS.

@@ -2,7 +2,7 @@
 documento: PRD
 produto: Servio
 release: R1 (MVP — Gestão)
-versao: 1.3
+versao: 1.4
 status: Aprovado (2026-11-19)
 autor: Evandro Nascimento (PO/TL) com apoio de IA
 criado: 2026-11-19
@@ -124,13 +124,14 @@ Prioridade MoSCoW: **M** = obrigatório, **S** = deveria ter, **C** = se der tem
 | RN-14 | Transferir moto para outro cliente não é permitido na R1. |
 | RN-15 | Busca de cliente: por trecho do nome (ignorando maiúsculas e acentos) ou por trecho do telefone (só números). |
 | RN-16 | Serviço: duração em minutos, maior que 0 e até 480; preço base maior ou igual a 0 (zero permitido para cortesia); nome único por tenant entre os serviços ativos. |
-| RN-17 | Marca do tenant: cor primária e secundária em hexadecimal; logo PNG ou SVG com até 500 KB. O armazenamento do logo é definido em ADR. |
+| RN-17 | Marca do tenant: cor primária e secundária em hexadecimal; logo PNG ou SVG com até 500 KB. O armazenamento do logo é definido em ADR. As cores primária e secundária são obrigatórias. |
 | RN-18 | Provisionamento: o primeiro tenant e o primeiro Gestor são criados por script de provisionamento. Não há tela de administração da plataforma na R1. |
 | RN-19 | Autenticação (valores de referência para a ADR): sessão expira em 8h; senha com no mínimo 8 caracteres; bloqueio de 15 minutos após 5 tentativas inválidas seguidas. |
 | RN-20 | Falha de login mostra sempre a mesma mensagem: "E-mail ou senha inválidos. Após 5 tentativas, o acesso fica bloqueado por 15 minutos." A mensagem não muda quando a conta está bloqueada, para não revelar o estado da conta. |
 | RN-21 | O slug da oficina é público (aparece no link compartilhado com a equipe). Slug inexistente mostra a tela de login neutra, sem nome nem cores, e o envio retorna o mesmo erro genérico. |
 | RN-22 | O e-mail do usuário é único por oficina, sem diferenciar maiúsculas e minúsculas, e é armazenado em minúsculas. O mesmo e-mail pode existir em oficinas diferentes. |
 | RN-23 | O script de provisionamento do primeiro Gestor falha sem alterar nada quando a oficina já tem um Gestor ativo, informando o motivo. Ele nunca altera a senha de um usuário existente. |
+| RN-24 | O slug da oficina é informado no script de provisionamento, é único entre as oficinas e usa só letras minúsculas sem acento, números e hífen. |
 
 ### Matriz de permissões (R1)
 
@@ -186,6 +187,7 @@ Decisões padrão adotadas na aprovação, revisáveis em versões futuras:
 | D5 | Metas da seção 3 | Mantidas |
 | D6 | Dúvidas Q1–Q9 levantadas pelo agente na criação do backlog | Respondidas em RN-12 a RN-19 e na matriz de permissões (v1.1). A estória de login (E1.2) aguarda a ADR de autenticação |
 | D7 | Dúvidas levantadas ao quebrar o login (E1.2) em estórias | Logout vira E1.6 (M); RN-20; RN-21; logo na tela de login aguarda a ADR de armazenamento (RN-17) |
+| D8 | Dúvidas na revisão das estórias de login | RN-24; RN-17 passa a exigir as duas cores |
 
 ## 12. Critérios de pronto da release
 
@@ -213,3 +215,4 @@ Decisões padrão adotadas na aprovação, revisáveis em versões futuras:
 | 1.1 | 2026-11-19 | Evandro | RN-12 a RN-19 e matriz de permissões, a partir das dúvidas levantadas na criação do backlog (D6). Chaves dos épicos E2–E5 |
 | 1.2 | 2026-11-19 | Evandro | E1.6, RN-20 e RN-21 (D7) |
 | 1.3 | 2026-11-19 | Evandro | RN-22 e RN-23, a partir das dúvidas na criação da SRV-21 |
+| 1.4 | 2026-11-28 | Evandro | RN-24 e ajuste da RN-17, a partir da revisão das estórias de login (D8) |
