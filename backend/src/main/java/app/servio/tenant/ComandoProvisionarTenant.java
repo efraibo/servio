@@ -13,7 +13,7 @@ import org.springframework.stereotype.Component;
  * Uma recusa encerra o processo com erro e o motivo.
  */
 @Component
-@Profile("provisionamento")
+@Profile("provisionamento & !gestor")
 class ComandoProvisionarTenant implements ApplicationRunner {
 
     private static final Logger LOG = LoggerFactory.getLogger(ComandoProvisionarTenant.class);

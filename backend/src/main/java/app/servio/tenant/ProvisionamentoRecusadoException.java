@@ -3,7 +3,7 @@ package app.servio.tenant;
 
 public class ProvisionamentoRecusadoException extends RuntimeException {
 
-    ProvisionamentoRecusadoException(String motivo) {
+    public ProvisionamentoRecusadoException(String motivo) {
         super(motivo);
     }
 }
